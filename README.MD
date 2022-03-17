@@ -2,7 +2,8 @@
 ```
 gcloud init
 gcloud auth list
-gcloud auth activate-service-account --key-file=tdg-ct-carbontrace-nonprod-brx-8fc68b01960d.json
+gcloud auth activate-service-account --key-file=tdg-ct-carbontrace-nonprod-brx-031fde150b32.json
+gcloud compute project-info describe
 gcloud auth login --cred-file=credential.json
 gcloud auth revoke t12-automation@tdg-ct-carbontrace-nonprod-brx.iam.gserviceaccount.com
 gcloud auth print-access-token
@@ -10,6 +11,16 @@ gcloud config list
 gcloud config set project tdg-ct-carbontrace-nonprod-brx
 ```
 [gcloud cheat sheet](https://cloud.google.com/sdk/docs/cheatsheet)
+
+## Configure SSH
+```
+ssh-keygen -t rsa -f ~/.ssh/KEY_FILENAME -C USER -b 2048
+ssh-keygen -t rsa -f ~/.ssh/gcp-ssh -C nuttipong.tae@truedigital.com -b 2048
+
+gcloud compute os-login ssh-keys add --key-file="~/.ssh/gcp-ssh.pub" --project=tdg-ct-carbontrace-nonprod-brx --ttl=1d
+
+
+```
 
 ## Create VM instance
 ```
@@ -19,11 +30,11 @@ gcloud config set compute/zone asia-southeast1-a
 gcloud compute images list --filter ubuntu-os-cloud
 # os > https://cloud.google.com/compute/docs/images/os-details#ubuntu_pro
 
-gcloud compute instances create "node1" \
+gcloud compute instances create "node3" \
 --machine-type "n1-standard-1" \
 --image-family "ubuntu-2004-lts" \
 --image-project "ubuntu-os-cloud" \
---zone "asia-southeast1-a" \
+--zone "asia-southeast1-c" \
 --tags "redis-tag" \
 --subnet "default"
 
@@ -65,7 +76,7 @@ exit
 
 ## Create Firewall rules
 ```
-gcloud compute firewall-rules create redis-firewall --target-tags redis-tag --allow tcp:80,tcp:7000,tcp:7001
+gcloud compute firewall-rules create redis-firewall --target-tags redis-tag --allow tcp:80,tcp:7000,tcp:7001,tcp:17000,tcp:17001
 gcloud compute firewall-rules delete redis-firewall
 gcloud compute firewall-rules update redis-firewall --allow tcp:80,tcp:7000,tcp:7001,tcp:17000,tcp:17001
 ```
@@ -153,8 +164,19 @@ redis-cli -a a-very-complex-password-here --cluster create \
 34.87.147.4:7001 \
 35.186.149.3:7001 \
 35.247.163.85:7001 \
---cluster-replicas 1
+--cluster-replicas 1 \
+--cluster-yes
 ```
+redis-cli -a a-very-complex-password-here --cluster create \
+35.240.255.52:7000 \
+35.240.255.52:7001 \
+35.240.239.160:7000 \
+35.240.239.160:7001 \
+35.198.199.141:7000 \
+35.198.199.141:7001 \
+--cluster-replicas 1 \
+--cluster-yes
+
 ## After creating the cluster there are 16384 hash slots, divided by the 3 servers:
 - node1 contains hash slots from 0 to 5500
 - node2 contains hash slots from 5501 to 11000
@@ -162,13 +184,13 @@ redis-cli -a a-very-complex-password-here --cluster create \
 
 ## Checking the status of the Redis Cluster
 ```
-redis-cli -c -h 34.87.147.4 -p 7000 -a a-very-complex-password-here
+redis-cli -c -h 34.126.83.64 -p 7000 -a a-very-complex-password-here
 34.87.147.4:7000> CLUSTER NODES
 ```
 
 ## SET and GET operations to test
 ```
-redis-cli -c -h 34.87.147.4 -p 7000 -a a-very-complex-password-here
+redis-cli -c -h 35.240.255.52 -p 7000 -a a-very-complex-password-here
 34.87.147.4:7000> set a 1
 34.87.147.4:7000> set b 2
 34.87.147.4:7000> set c 3
